@@ -20,7 +20,6 @@ class ManipulateSo:
             passwordWifi = fileXml.split("<keyMaterial>")[1].split("</keyMaterial>")[0]
             authentication = fileXml.split("<authentication>")[1].split("</authentication>")[0]
 
-            # guardar en un array
             wifiPW.append({
                 "name": nameWifi,
                 "password": passwordWifi,
